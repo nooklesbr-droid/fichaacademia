@@ -2,7 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Treino ABC</title>
 
   <style>
@@ -35,6 +37,7 @@
 
     button {
       font-family: inherit;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .app {
@@ -98,8 +101,16 @@
 
     #timerDisplay {
       display: block;
-      font-size: 2rem;
+      font-size: 2.15rem;
       letter-spacing: -0.04em;
+      transition: color 0.2s ease;
+    }
+
+    .timer-hint {
+      display: block;
+      margin-top: 3px;
+      font-size: 0.72rem;
+      color: var(--muted);
     }
 
     .timer-actions {
@@ -233,8 +244,8 @@
     }
 
     .set-btn {
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
       border: 1px solid var(--line);
       border-radius: 14px;
       background: #252531;
@@ -293,13 +304,14 @@
     <header class="hero">
       <p class="eyebrow">Controle de treino</p>
       <h1>Treino ABC</h1>
-      <p class="subtitle">Marque as séries feitas e acompanhe o descanso de 1 minuto e 30 segundos.</p>
+      <p class="subtitle">Marque as s&eacute;ries feitas e acompanhe o descanso de 1 minuto e 30 segundos.</p>
     </header>
 
     <section class="timer-card">
       <div>
         <span class="timer-label">Descanso</span>
-<strong id="timerDisplay">01:30</strong>
+        <strong id="timerDisplay">01:30</strong>
+        <span id="timerHint" class="timer-hint">Pronto para iniciar</span>
       </div>
 
       <div class="timer-actions">
@@ -334,7 +346,10 @@
   </main>
 
   <script>
-    const STORAGE_KEY = "treinoABC:status:v1";
+    const STORAGE_KEY = "treinoABC:status:v2";
+
+    const REST_SECONDS = 90;
+    const MAX_NEGATIVE_SECONDS = -90;
 
     const workouts = {
       A: [
@@ -343,8 +358,10 @@
         { section: "PERNA", name: "Stiff", label: "3x8-10", sets: 3 },
         { section: "PERNA", name: "Cadeira extensora", label: "3x12-15", sets: 3 },
         { section: "PERNA", name: "Mesa flexora ou cadeira flexora", label: "3x10-12", sets: 3 },
+
         { section: "OMBRO", name: "Desenvolvimento de ombro", label: "3x8-10", sets: 3 },
         { section: "OMBRO", name: "Elevacao lateral", label: "4x12-20", sets: 4 },
+
         { section: "ABDOMEN", name: "Cable crunch na polia", label: "3x12-15", sets: 3 },
         { section: "ABDOMEN", name: "Prancha", label: "2x30-60s", sets: 2 }
       ],
@@ -354,30 +371,33 @@
         { section: "PEITO", name: "Supino reto", label: "3x6-8", sets: 3 },
         { section: "PEITO", name: "Supino inclinado", label: "3x8-10", sets: 3 },
         { section: "PEITO", name: "Peck deck", label: "3x12-15", sets: 3 },
+
         { section: "OMBRO", name: "Desenvolvimento de ombro", label: "3x8-10", sets: 3 },
         { section: "OMBRO", name: "Elevacao lateral", label: "4x12-20", sets: 4 },
+
         { section: "TRICEPS", name: "Triceps testa", label: "3x6-10", sets: 3 },
-        { section: "TRICEPS", name: "Triceps frances", label: "3x10-12", sets: 3 },
+        { section: "TRICEPS", name: "Triceps frances acima da cabeca", label: "3x10-12", sets: 3 },
         { section: "TRICEPS", name: "Triceps corda", label: "2-3x12-15", sets: 3 },
+
         { section: "PANTURRILHA", name: "Panturrilha em pe ou leg press", label: "4x10-15", sets: 4 },
+
         { section: "ABDOMEN", name: "Abdominal na polia", label: "2-3x12-15", sets: 3 }
       ],
 
       C: [
-        { section: "COSTAS", name: "Puxada alta", label: "4x6-10", sets: 4 },
-        { section: "COSTAS", name: "Remada apoiada", label: "3x8-10", sets: 3 },
+        { section: "COSTAS", name: "Puxada alta barra fixa ou pulley", label: "4x6-10", sets: 4 },
+        { section: "COSTAS", name: "Remada apoiada maquina ou banco", label: "3x8-10", sets: 3 },
         { section: "COSTAS", name: "Remada baixa na polia", label: "3x8-12", sets: 3 },
         { section: "COSTAS", name: "Pulldown braco reto", label: "3x12-15", sets: 3 },
-        { section: "POSTERIOR DE OMBRO", name: "Face pull", label: "3x12-20", sets: 3 },
+
+        { section: "POSTERIOR DE OMBRO / ESTABILIDADE", name: "Face pull", label: "3x12-20", sets: 3 },
+
         { section: "BICEPS", name: "Rosca direta barra W", label: "3x6-10", sets: 3 },
         { section: "BICEPS", name: "Rosca martelo ou alternada inclinada", label: "3x10-12", sets: 3 }
       ]
     };
 
     let currentWorkout = "A";
-    const REST_SECONDS = 90;
-    const MAX_NEGATIVE_SECONDS = -90;
-
     let timerSeconds = REST_SECONDS;
     let timerInterval = null;
     let timerPaused = false;
@@ -387,6 +407,7 @@
     const progressText = document.getElementById("progressText");
     const progressFill = document.getElementById("progressFill");
     const timerDisplay = document.getElementById("timerDisplay");
+    const timerHint = document.getElementById("timerHint");
     const pauseTimerBtn = document.getElementById("pauseTimerBtn");
     const resetTimerBtn = document.getElementById("resetTimerBtn");
     const resetCurrentBtn = document.getElementById("resetCurrentBtn");
@@ -449,18 +470,31 @@
 
         const doneCount = countExerciseDone(currentWorkout, exerciseIndex, exercise.sets);
 
-        card.innerHTML = `
-          <div class="exercise-top">
-            <div>
-              <h3 class="exercise-name">${exercise.name}</h3>
-              <span class="exercise-meta">${exercise.label}</span>
-            </div>
-            <span class="exercise-count">${doneCount}/${exercise.sets}</span>
-          </div>
-          <div class="sets"></div>
-        `;
+        const top = document.createElement("div");
+        top.className = "exercise-top";
 
-        const setsContainer = card.querySelector(".sets");
+        const titleBlock = document.createElement("div");
+
+        const name = document.createElement("h3");
+        name.className = "exercise-name";
+        name.textContent = exercise.name;
+
+        const meta = document.createElement("span");
+        meta.className = "exercise-meta";
+        meta.textContent = exercise.label;
+
+        titleBlock.appendChild(name);
+        titleBlock.appendChild(meta);
+
+        const count = document.createElement("span");
+        count.className = "exercise-count";
+        count.textContent = `${doneCount}/${exercise.sets}`;
+
+        top.appendChild(titleBlock);
+        top.appendChild(count);
+
+        const setsContainer = document.createElement("div");
+        setsContainer.className = "sets";
 
         for (let setNumber = 1; setNumber <= exercise.sets; setNumber++) {
           const btn = document.createElement("button");
@@ -479,6 +513,8 @@
           setsContainer.appendChild(btn);
         }
 
+        card.appendChild(top);
+        card.appendChild(setsContainer);
         workoutContainer.appendChild(card);
       });
 
@@ -489,7 +525,9 @@
       let count = 0;
 
       for (let setNumber = 1; setNumber <= totalSets; setNumber++) {
-        if (isSetDone(workout, exerciseIndex, setNumber)) count++;
+        if (isSetDone(workout, exerciseIndex, setNumber)) {
+          count++;
+        }
       }
 
       return count;
@@ -505,7 +543,9 @@
         total += exercise.sets;
 
         for (let setNumber = 1; setNumber <= exercise.sets; setNumber++) {
-          if (isSetDone(currentWorkout, exerciseIndex, setNumber)) done++;
+          if (isSetDone(currentWorkout, exerciseIndex, setNumber)) {
+            done++;
+          }
         }
       });
 
@@ -516,73 +556,83 @@
     }
 
     function startTimer() {
-  clearInterval(timerInterval);
-
-  timerSeconds = REST_SECONDS;
-  timerPaused = false;
-  pauseTimerBtn.textContent = "Pausar";
-  updateTimerDisplay();
-
-  timerInterval = setInterval(() => {
-    if (timerPaused) return;
-
-    timerSeconds--;
-
-    if (timerSeconds === 0) {
-      notifyTimerEnd();
-    }
-
-    if (timerSeconds <= MAX_NEGATIVE_SECONDS) {
-      timerSeconds = MAX_NEGATIVE_SECONDS;
       clearInterval(timerInterval);
-      timerInterval = null;
-      updateTimerDisplay();
-      return;
-    }
 
-    updateTimerDisplay();
-  }, 1000);
-}
+      timerSeconds = REST_SECONDS;
+      timerPaused = false;
+      pauseTimerBtn.textContent = "Pausar";
+
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        if (timerPaused) return;
+
+        timerSeconds--;
+
+        if (timerSeconds === 0) {
+          notifyTimerEnd();
+        }
+
+        if (timerSeconds <= MAX_NEGATIVE_SECONDS) {
+          timerSeconds = MAX_NEGATIVE_SECONDS;
+          clearInterval(timerInterval);
+          timerInterval = null;
+          updateTimerDisplay();
+          return;
+        }
 
         updateTimerDisplay();
       }, 1000);
     }
 
     function updateTimerDisplay() {
-  const isNegative = timerSeconds < 0;
-  const absSeconds = Math.abs(timerSeconds);
+      const isNegative = timerSeconds < 0;
+      const absSeconds = Math.abs(timerSeconds);
 
-  const minutes = String(Math.floor(absSeconds / 60)).padStart(2, "0");
-  const seconds = String(absSeconds % 60).padStart(2, "0");
+      const minutes = String(Math.floor(absSeconds / 60)).padStart(2, "0");
+      const seconds = String(absSeconds % 60).padStart(2, "0");
 
-  timerDisplay.textContent = `${isNegative ? "-" : ""}${minutes}:${seconds}`;
+      timerDisplay.textContent = `${isNegative ? "-" : ""}${minutes}:${seconds}`;
 
-  if (timerSeconds < 0) {
-    timerDisplay.style.color = "#ef4444";
-  } else if (timerSeconds === 0) {
-    timerDisplay.style.color = "#22c55e";
-  } else if (timerSeconds <= 15) {
-    timerDisplay.style.color = "#f59e0b";
-  } else {
-    timerDisplay.style.color = "#ffffff";
-  }
-}
+      if (timerSeconds < 0) {
+        timerDisplay.style.color = "#ef4444";
+        timerHint.textContent = "Passou do descanso";
+      } else if (timerSeconds === 0) {
+        timerDisplay.style.color = "#22c55e";
+        timerHint.textContent = "Descanso concluido";
+      } else if (timerSeconds <= 15) {
+        timerDisplay.style.color = "#f59e0b";
+        timerHint.textContent = "Quase na hora";
+      } else {
+        timerDisplay.style.color = "#ffffff";
+        timerHint.textContent = "Descansando";
+      }
+
+      if (!timerInterval && timerSeconds === REST_SECONDS) {
+        timerHint.textContent = "Pronto para iniciar";
+      }
+
+      if (!timerInterval && timerSeconds === MAX_NEGATIVE_SECONDS) {
+        timerHint.textContent = "Limite maximo atingido";
+      }
+    }
 
     function toggleTimerPause() {
       if (!timerInterval) return;
 
       timerPaused = !timerPaused;
       pauseTimerBtn.textContent = timerPaused ? "Continuar" : "Pausar";
+      timerHint.textContent = timerPaused ? "Timer pausado" : "Descansando";
     }
 
-   function resetTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
-  timerPaused = false;
-  timerSeconds = REST_SECONDS;
-  pauseTimerBtn.textContent = "Pausar";
-  updateTimerDisplay();
-}
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timerPaused = false;
+      timerSeconds = REST_SECONDS;
+      pauseTimerBtn.textContent = "Pausar";
+      updateTimerDisplay();
+    }
 
     function notifyTimerEnd() {
       if ("vibrate" in navigator) {
@@ -608,11 +658,14 @@
 
         oscillator.start();
         oscillator.stop(audioContext.currentTime + 0.38);
-      } catch {}
+      } catch (error) {
+        // Alguns navegadores bloqueiam som automatico.
+      }
     }
 
     function resetCurrentWorkout() {
       const confirmed = confirm(`Resetar somente o Treino ${currentWorkout}?`);
+
       if (!confirmed) return;
 
       const state = loadState();
@@ -629,6 +682,7 @@
 
     function resetAllWorkouts() {
       const confirmed = confirm("Limpar todos os treinos A, B e C?");
+
       if (!confirmed) return;
 
       localStorage.removeItem(STORAGE_KEY);
