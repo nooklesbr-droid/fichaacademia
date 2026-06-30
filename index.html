@@ -293,13 +293,13 @@
     <header class="hero">
       <p class="eyebrow">Controle de treino</p>
       <h1>Treino ABC</h1>
-      <p class="subtitle">Marque as séries feitas e acompanhe o descanso de 3 minutos.</p>
+      <p class="subtitle">Marque as séries feitas e acompanhe o descanso de 1 minuto e 30 segundos.</p>
     </header>
 
     <section class="timer-card">
       <div>
         <span class="timer-label">Descanso</span>
-        <strong id="timerDisplay">03:00</strong>
+<strong id="timerDisplay">01:30</strong>
       </div>
 
       <div class="timer-actions">
@@ -375,7 +375,10 @@
     };
 
     let currentWorkout = "A";
-    let timerSeconds = 180;
+    const REST_SECONDS = 90;
+    const MAX_NEGATIVE_SECONDS = -90;
+
+    let timerSeconds = REST_SECONDS;
     let timerInterval = null;
     let timerPaused = false;
 
@@ -513,45 +516,57 @@
     }
 
     function startTimer() {
+  clearInterval(timerInterval);
+
+  timerSeconds = REST_SECONDS;
+  timerPaused = false;
+  pauseTimerBtn.textContent = "Pausar";
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    if (timerPaused) return;
+
+    timerSeconds--;
+
+    if (timerSeconds === 0) {
+      notifyTimerEnd();
+    }
+
+    if (timerSeconds <= MAX_NEGATIVE_SECONDS) {
+      timerSeconds = MAX_NEGATIVE_SECONDS;
       clearInterval(timerInterval);
-
-      timerSeconds = 180;
-      timerPaused = false;
-      pauseTimerBtn.textContent = "Pausar";
+      timerInterval = null;
       updateTimerDisplay();
+      return;
+    }
 
-      timerInterval = setInterval(() => {
-        if (timerPaused) return;
-
-        timerSeconds--;
-
-        if (timerSeconds <= 0) {
-          timerSeconds = 0;
-          clearInterval(timerInterval);
-          timerInterval = null;
-          updateTimerDisplay();
-          notifyTimerEnd();
-          return;
-        }
+    updateTimerDisplay();
+  }, 1000);
+}
 
         updateTimerDisplay();
       }, 1000);
     }
 
     function updateTimerDisplay() {
-      const minutes = String(Math.floor(timerSeconds / 60)).padStart(2, "0");
-      const seconds = String(timerSeconds % 60).padStart(2, "0");
+  const isNegative = timerSeconds < 0;
+  const absSeconds = Math.abs(timerSeconds);
 
-      timerDisplay.textContent = `${minutes}:${seconds}`;
+  const minutes = String(Math.floor(absSeconds / 60)).padStart(2, "0");
+  const seconds = String(absSeconds % 60).padStart(2, "0");
 
-      if (timerSeconds === 0) {
-        timerDisplay.style.color = "#22c55e";
-      } else if (timerSeconds <= 30) {
-        timerDisplay.style.color = "#f59e0b";
-      } else {
-        timerDisplay.style.color = "#ffffff";
-      }
-    }
+  timerDisplay.textContent = `${isNegative ? "-" : ""}${minutes}:${seconds}`;
+
+  if (timerSeconds < 0) {
+    timerDisplay.style.color = "#ef4444";
+  } else if (timerSeconds === 0) {
+    timerDisplay.style.color = "#22c55e";
+  } else if (timerSeconds <= 15) {
+    timerDisplay.style.color = "#f59e0b";
+  } else {
+    timerDisplay.style.color = "#ffffff";
+  }
+}
 
     function toggleTimerPause() {
       if (!timerInterval) return;
@@ -560,14 +575,14 @@
       pauseTimerBtn.textContent = timerPaused ? "Continuar" : "Pausar";
     }
 
-    function resetTimer() {
-      clearInterval(timerInterval);
-      timerInterval = null;
-      timerPaused = false;
-      timerSeconds = 180;
-      pauseTimerBtn.textContent = "Pausar";
-      updateTimerDisplay();
-    }
+   function resetTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerPaused = false;
+  timerSeconds = REST_SECONDS;
+  pauseTimerBtn.textContent = "Pausar";
+  updateTimerDisplay();
+}
 
     function notifyTimerEnd() {
       if ("vibrate" in navigator) {
